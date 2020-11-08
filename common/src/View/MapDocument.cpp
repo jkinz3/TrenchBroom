@@ -1592,6 +1592,58 @@ namespace TrenchBroom {
             executeAndStore(std::make_unique<SwapNodeContentsCommand>(commandName, std::move(nodesToSwap)));
         }
 
+        bool MapDocument::transformObjects(const std::string& commandName, const vm::mat4x4& transformation) {
+            auto nodesToTransform = std::vector<Model::Node*>{};
+            for (auto* node : m_selectedNodes) {
+                node->accept(kdl::overload(
+                    [&](auto&& thisLambda, Model::WorldNode* world) { world->visitChildren(thisLambda); },
+                    [&](auto&& thisLambda, Model::LayerNode* layer) { layer->visitChildren(thisLambda); },
+                    [&](auto&& thisLambda, Model::GroupNode* group) { group->visitChildren(thisLambda); },
+                    [&](auto&& thisLambda, Model::EntityNode* entity) { 
+                        if (!entity->hasChildren()) {
+                            nodesToTransform.push_back(entity);
+                        } else {
+                            entity->visitChildren(thisLambda);
+                        }
+                    },
+                    [&](Model::BrushNode* brush) { 
+                        nodesToTransform.push_back(brush);
+                     }
+                ));
+            }
+
+            const auto success = applyAndSwap(*this, commandName, nodesToTransform, [&](Model::Node& node) {
+                return node.accept(kdl::overload(
+                    [] (Model::WorldNode*)  { return true; },
+                    [] (Model::LayerNode*)  { return true; },
+                    [] (Model::GroupNode*)  { return true; },
+                    [&](Model::EntityNode* entity) { 
+                        entity->transform(transformation);
+                        return true;
+                    },
+                    [&](Model::BrushNode* brushNode)   { 
+                        return brushNode->brush().transform(m_worldBounds, transformation, pref(Preferences::TextureLock))
+                            .visit(kdl::overload(
+                                [&](auto&& brush) {
+                                    brushNode->setBrush(std::move(brush));
+                                    return true;
+                                },
+                                [&](Model::BrushError e) {
+                                    error() << "Could not transform brush: " << e;
+                                    return false;
+                                }
+                            ));
+                    }
+                ));
+            });
+
+            if (success) {
+                m_repeatStack->push([=]() { this->transformObjects(commandName, transformation); });
+                return true;
+            }
+            return false;
+        }
+
         bool MapDocument::translateObjects(const vm::vec3& delta) {
             const auto result = executeAndStore(TransformObjectsCommand::translate(delta, pref(Preferences::TextureLock)));
             if (result->success()) {
