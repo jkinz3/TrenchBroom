@@ -130,19 +130,13 @@
 
 namespace TrenchBroom {
     namespace View {
-        /**
-         * Clone each of the given nodes, apply the given lambda to the clone, and swap the contents of each original node with those of the modified clone.
-         *
-         * Returns true if the given lambda could be applied successfully to all clones and false otherwise. If the lambda fails for any clone, then no
-         * node contents will be swapped, and the original nodes remain unmo
-         */
         template <typename N, typename L>
-        static bool applyAndSwap(MapDocument& document, const std::string& commandName, const std::vector<N*>& nodes, L lambda) {
-            auto newNodes = std::vector<std::pair<Model::Node*, Model::NodeContents>>{};
-            newNodes.reserve(nodes.size());
+        static std::optional<std::vector<std::pair<Model::Node*, Model::NodeContents>>> applyToNodeContents(const std::vector<N*>& nodes, L lambda) {
+            auto result = std::vector<std::pair<Model::Node*, Model::NodeContents>>{};
+            result.reserve(nodes.size());
 
             bool success = true;
-            std::transform(std::begin(nodes), std::end(nodes), std::back_inserter(newNodes), [&](auto* node) {
+            std::transform(std::begin(nodes), std::end(nodes), std::back_inserter(result), [&](auto* node) {
                 auto nodeContents = node->accept(kdl::overload(
                     [](const Model::WorldNode* worldNode)   -> std::variant<Model::Entity, Model::Brush> { return worldNode->entity(); },
                     [](const Model::LayerNode* layerNode)   -> std::variant<Model::Entity, Model::Brush> { return layerNode->entity(); },
@@ -155,11 +149,23 @@ namespace TrenchBroom {
                 return std::make_pair(node, Model::NodeContents(std::move(nodeContents)));
             });
 
-            if (success) {
-                document.swapNodeContents(commandName, std::move(newNodes));
+            return success ? std::make_optional(result) : std::nullopt;
+        }
+
+        /**
+         * Clone each of the given nodes, apply the given lambda to the clone, and swap the contents of each original node with those of the modified clone.
+         *
+         * Returns true if the given lambda could be applied successfully to all clones and false otherwise. If the lambda fails for any clone, then no
+         * node contents will be swapped, and the original nodes remain unmo
+         */
+        template <typename N, typename L>
+        static bool applyAndSwap(MapDocument& document, const std::string& commandName, const std::vector<N*>& nodes, L lambda) {
+            if (auto newNodes = applyToNodeContents(nodes, std::move(lambda))) {
+                document.swapNodeContents(commandName, std::move(*newNodes));
+                return true;
             }
 
-            return success;
+            return false;
         }
 
         template <typename L>
