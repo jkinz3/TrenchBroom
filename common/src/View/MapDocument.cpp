@@ -2060,11 +2060,10 @@ namespace TrenchBroom {
                                     failedBrushCount += 1;
                                 }
                             ));
-                       return true;
                     } else {
                         failedBrushCount += 1;
-                        return false;
                     }
+                    return true;
                 }
             ));
 
