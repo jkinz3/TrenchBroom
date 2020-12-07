@@ -130,7 +130,7 @@ namespace TrenchBroom {
 
             bool success = true;
             std::transform(std::begin(nodes), std::end(nodes), std::back_inserter(result), [&](auto* node) {
-                auto nodeContents = node->accept(kdl::overload(
+                std::variant<Model::Entity, Model::Brush> nodeContents = node->accept(kdl::overload(
                     [](const Model::WorldNode* worldNode)   -> std::variant<Model::Entity, Model::Brush> { return worldNode->entity(); },
                     [](const Model::LayerNode* layerNode)   -> std::variant<Model::Entity, Model::Brush> { return layerNode->entity(); },
                     [](const Model::GroupNode* groupNode)   -> std::variant<Model::Entity, Model::Brush> { return groupNode->entity(); },
