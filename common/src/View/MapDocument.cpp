@@ -2233,6 +2233,10 @@ namespace TrenchBroom {
                 [] (Model::Entity&) { return true; },
                 [&](Model::Brush& originalBrush) {
                     const auto verticesToRemove = kdl::vec_filter(vertexPositions, [&](const auto& vertex) { return originalBrush.hasVertex(vertex); });
+                    if (verticesToRemove.empty()) {
+                        return true;
+                    }
+
                     if (!originalBrush.canRemoveVertices(m_worldBounds, verticesToRemove)) {
                         return false;
                     }
