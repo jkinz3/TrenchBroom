@@ -2084,6 +2084,10 @@ namespace TrenchBroom {
                 [] (Model::Entity&) { return true; },
                 [&](Model::Brush& originalBrush) {
                     const auto verticesToMove = kdl::vec_filter(vertexPositions, [&](const auto& vertex) { return originalBrush.hasVertex(vertex); });
+                    if (verticesToMove.empty()) {
+                        return true;
+                    }
+
                     if (!originalBrush.canMoveVertices(m_worldBounds, verticesToMove, delta)) {
                         return false;
                     }
