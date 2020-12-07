@@ -317,9 +317,13 @@ namespace TrenchBroom {
                 ));
             }
 
-            setEntityDefinitions(nodes);
-            setEntityModels(nodes);
-            setTextures(nodes);
+            if (!notifyEntityDefinitionsChange && !notifyModsChange) {
+                setEntityDefinitions(nodes);
+                setEntityModels(nodes);
+            }
+            if (!notifyTextureCollectionChange) {
+                setTextures(nodes);
+            }
 
             invalidateSelectionBounds();
         }
