@@ -2171,6 +2171,10 @@ namespace TrenchBroom {
                 [] (Model::Entity&) { return true; },
                 [&](Model::Brush& originalBrush) {
                     const auto facesToMove = kdl::vec_filter(facePositions, [&](const auto& face) { return originalBrush.hasFace(face); });
+                    if (facesToMove.empty()) {
+                        return true;
+                    }
+
                     if (!originalBrush.canMoveFaces(m_worldBounds, facesToMove, delta)) {
                         return false;
                     }
