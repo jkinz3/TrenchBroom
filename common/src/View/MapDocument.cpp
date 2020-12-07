@@ -2129,6 +2129,10 @@ namespace TrenchBroom {
                 [] (Model::Entity&) { return true; },
                 [&](Model::Brush& originalBrush) {
                     const auto edgesToMove = kdl::vec_filter(edgePositions, [&](const auto& edge) { return originalBrush.hasEdge(edge); });
+                    if (edgesToMove.empty()) {
+                        return true;
+                    }
+
                     if (!originalBrush.canMoveEdges(m_worldBounds, edgesToMove, delta)) {
                         return false;
                     }
